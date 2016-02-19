@@ -1,0 +1,20 @@
+using UnityEngine;
+using System.Collections;
+
+public class InventoryItem : MonoBehaviour{
+	
+	public string name;
+	public string description;
+	public Sprite icon;
+	public GameObject item;
+	public int price;
+	
+	public InventoryItem( string n, string d, Sprite i, GameObject o, int p)
+	{
+		name = n;
+		description = d;
+		icon = i;
+		item = o;
+		price = p;
+	}
+}
