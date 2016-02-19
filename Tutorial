@@ -1,0 +1,118 @@
+using UnityEngine;
+using System.Collections;
+using UnityEngine.UI;
+using System.Collections.Generic;
+
+public class tutorial : MonoBehaviour {
+	//Logic Variables
+	bool checkpoint1;
+	bool isCheck1;
+	bool checkpoint2;
+	bool isCheck2;
+	bool checkpoint3;
+	bool checkpoint4;
+	bool isMoney;
+	GameObject[] barricades;
+	string objectiveText;
+	WeaponInfo playerWeap;
+	public float tutTime;
+	public float endTutTime;
+
+	//GameObject Variables
+	public Spawner spawnManager;
+	public GameObject enemySpawns;
+	public Animator tutAnim;
+	public GameObject money;
+	public tempoController music;
+	public bankManager bank;
+	public GameObject lastPanel;
+	public Text objectiveLabel;
+	public GameObject playerCam;
+
+	//Start the first section of the tutorial
+	void Start () {
+		StartCoroutine (check1 ());
+	}
+
+	void Update () {
+		//if 
+		if (checkpoint1 && !isCheck2) {
+			check2 ();
+			if(!isMoney){
+				money.SetActive (true);
+				isMoney = true;
+			}
+		}
+		if(!checkpoint3 && (checkpoint1 && checkpoint2)){
+			check3 ();
+		}
+		if(checkpoint3 && (checkpoint1 && checkpoint2)){
+			check4 ();
+		}
+		if((checkpoint4 && checkpoint3) && (checkpoint1 && checkpoint2)){
+			StartCoroutine(endTutorial());
+		}
+		objectiveLabel.text = objectiveText;
+		playerWeap = playerCam.GetComponent<PlayerWeapons> ().weapons[0].GetComponent<WeaponInfo>();
+		barricades.Initialize ();
+		barricades = GameObject.FindGameObjectsWithTag ("BarricadeBase");
+		print (barricades.Length);
+		if (bank.bankAmount < 450 && checkpoint1) {
+			money.SetActive (true);
+		}
+	}
+
+	/*wait for the animation to finish playing before advancing to the interactive
+	/*part of the tutorial.*/
+	IEnumerator check1(){
+		yield return new WaitForSeconds (tutTime);
+		checkpoint1 = true;
+	}
+
+	//prompt the player to build 4 barricades and check if they have
+	void check2(){
+		objectiveText = "Build 4 Barricades-";
+		if (barricades.Length < 5) {
+			checkpoint2 = false;
+		} else {
+			//if they have then advance the tutorial
+			checkpoint2 = true;
+			isCheck2 = true;
+		}
+	}
+
+	//prompt the player to buy a weapon and check if they have
+	void check3(){
+		objectiveText = "Buy A Weapon-";
+		if (playerWeap.gunName == "M1911") {
+			checkpoint3 = false;
+		} else {
+			//if they have then advance the tutorial
+			checkpoint3 = true;
+		}
+	}
+
+	/*inform the player that they now have to survive a wave of enemies
+	** and check to see if they have srvived*/
+	void check4(){
+		objectiveText = "Survive-";
+		enemySpawns.SetActive (true);
+		if (spawnManager.curWave > 1) {
+			/*if they survived stop spawning enemies and set the final
+			**checkpoint as completed*/
+			enemySpawns.SetActive(false);
+			checkpoint4 = true;
+		}
+	}
+
+	//end the tutorial and clean up
+	IEnumerator endTutorial(){
+		lastPanel.SetActive(true);
+		music.SendMessage ("StartMusic");
+		yield return new WaitForSeconds (endTutTime);
+		Cursor.visible = true;
+		Cursor.lockState = CursorLockMode.None;
+		Application.LoadLevel (0);
+		Application.UnloadLevel (2);
+	}
+}
