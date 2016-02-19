@@ -1,0 +1,159 @@
+using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine.UI;
+
+public class InventoryManager : MonoBehaviour {
+	//Data Variables
+	public List<InventoryItem> inventory;
+	public bankManager bank;
+	int selectIndex;
+	bool isCarrying;
+
+	//Object Placement Variables
+	public Transform dropLocation;
+	public float snapDistance;
+	public float smooth;
+	Transform snapPosition;
+	GameObject tempObj;
+	bool isSnapped;
+	
+	//GUI Variables
+	public Text priceLabel;
+	public GameObject HUDIcon;
+
+	
+	void Update () {
+		//Ensure that the selected item and its price are displayed on the GUI
+		HUDIcon.GetComponent<Image> ().sprite = inventory [selectIndex].icon;
+		priceLabel.text = inventory [selectIndex].price.ToString ();
+
+		//if an object is not being carried...
+		if (!isCarrying) {
+			//...if the button to place an object is pressed and the player has enough money in the bank... 
+			if (Input.GetAxis ("Drop") > 0 && bank.bankAmount >= inventory[selectIndex].price) {
+				//...create the object and update the carrying variable.
+				tempObj = Instantiate (inventory[selectIndex].item, dropLocation.position, dropLocation.rotation) as GameObject;
+				isCarrying = true;
+			}
+		}
+
+		//if an object is being carried...
+		if(isCarrying)
+		{
+			//...carry the object and check to see if the player is trying to drop it.
+			carryItem(tempObj);
+			checkDrop();
+		}
+		//if the snapPosition is not set, set it to the dropLocation
+		if (snapPosition == null) {
+			snapPosition = dropLocation;
+		}
+	}
+
+	//The purpose of this function is to allow the player to cycle between inventory items.
+	void cycle(string sign)
+	{
+		//if the sign is negative...
+		if(sign == "neg"){
+			//...lower the selected item index by 1...
+			selectIndex -= 1;
+			//...and if the selected item index is less than 0...
+			if(selectIndex < 0)
+			{
+				//...set the selected index to the amount of items in the inventory.
+				selectIndex = inventory.Count -1;
+			}
+
+		}
+		//if the sign is positive...
+		else if(sign == "pos"){
+			//...increase the selected item index by 1...
+			selectIndex += 1;
+			//...if the selected item index is greater than the amount of items in the inventory...
+			if(selectIndex > inventory.Count - 1)
+			{
+				//...set the selected item index to 0.
+				selectIndex = 0;
+			}
+		}
+	}
+
+	//This function will check to see if the button to place the carried object is pressed
+	void checkDrop()
+	{
+		//if the button to place is pressed...
+		if(Input.GetAxis("Grab") == 1)
+		{
+			//...drop the item.
+			dropItem(inventory[selectIndex]);
+		}
+	}
+
+	//This is the main function for carrying and snapping objects together
+	void carryItem(GameObject item)
+	{
+		//find out if the object is snappable
+		Snappable snap = tempObj.GetComponent<Snappable> ();
+		if(snap != null){ {
+			//...check for any magnets in the scene...
+			GameObject[] magnets = GameObject.FindGameObjectsWithTag ("Magnet");
+			//...for every magnet thats found...
+			for (int i = 0; i < magnets.Length; i++) {
+				//...check the distance from the object to the magnet...
+				float distance = Vector3.Distance (magnets[i].transform.position, tempObj.transform.position);
+				//...if the distance to the magnet is less than the snapping distance and the magnet does not belong to the temp object...
+				if (distance <= snapDistance && magnets[i].transform.parent != tempObj.transform) {
+						snapPosition = magnets[i].transform;
+						isSnapped = true;
+					}
+				}
+			}
+		}
+
+		//check the distance between the default carry location and the current snap position...
+		float distance2 = Vector3.Distance (dropLocation.position, snapPosition.position);
+		//...if the distance between them is greater than the snap distance...
+		if(distance2 >= snapDistance)
+		{
+			//...reset the snap variable.
+			isSnapped = false;
+		}
+
+		//if the object is snapped...
+		if(isSnapped)
+		{
+			//...move the object to the snap location.
+			tempObj.transform.position = Vector3.Lerp (tempObj.transform.position, snapPosition.position, Time.deltaTime * smooth); ;
+			tempObj.transform.rotation = snapPosition.rotation;
+		}
+		//if the object is not snapped...
+		if(!isSnapped)
+		{
+			//...move the object to the carry location
+			tempObj.transform.position = Vector3.Lerp(tempObj.transform.position, dropLocation.position, Time.deltaTime * smooth);
+			tempObj.transform.rotation = dropLocation.rotation;
+		}
+
+	}
+
+	//This is the function used to place a carried item
+	void dropItem(InventoryItem i)
+	{
+		//Destroy the placeholder object...
+		Destroy (tempObj);
+		//if the object is not snapped...
+		if (!isSnapped) {
+			//...spawn the object at the drop location.
+			Instantiate (i.item, dropLocation.position, dropLocation.rotation);
+		} 
+		//...if it is snapped...
+		else {
+			//..spawn the object at the snap location.
+			Instantiate (i.item, snapPosition.position, snapPosition.rotation);
+		}
+		//...Remove the cost of the item from the players bank and reset the carry variable.
+		bank.bankAmount -= inventory [selectIndex].price;
+		isCarrying = false;
+	}
+}
