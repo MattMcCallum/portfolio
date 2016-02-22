@@ -1,0 +1,46 @@
+//This is the main function for carrying and snapping objects together
+	void carryItem(GameObject item)
+	{
+		//find out if the object is snappable
+		Snappable snap = tempObj.GetComponent<Snappable> ();
+		if(snap != null){ {
+			//...check for any magnets in the scene...
+			GameObject[] magnets = GameObject.FindGameObjectsWithTag ("Magnet");
+			//...for every magnet thats found...
+			for (int i = 0; i < magnets.Length; i++) {
+				//...check the distance from the object to the magnet...
+				float distance = Vector3.Distance (magnets[i].transform.position, tempObj.transform.position);
+				//...if the distance to the magnet is less than the snapping distance and the magnet does not belong to the temp object...
+				if (distance <= snapDistance && magnets[i].transform.parent != tempObj.transform) {
+						snapPosition = magnets[i].transform;
+						isSnapped = true;
+					}
+				}
+			}
+		}
+
+		//check the distance between the default carry location and the current snap position...
+		float distance2 = Vector3.Distance (dropLocation.position, snapPosition.position);
+		//...if the distance between them is greater than the snap distance...
+		if(distance2 >= snapDistance)
+		{
+			//...reset the snap variable.
+			isSnapped = false;
+		}
+
+		//if the object is snapped...
+		if(isSnapped)
+		{
+			//...move the object to the snap location.
+			tempObj.transform.position = Vector3.Lerp (tempObj.transform.position, snapPosition.position, Time.deltaTime * smooth); ;
+			tempObj.transform.rotation = snapPosition.rotation;
+		}
+		//if the object is not snapped...
+		if(!isSnapped)
+		{
+			//...move the object to the carry location
+			tempObj.transform.position = Vector3.Lerp(tempObj.transform.position, dropLocation.position, Time.deltaTime * smooth);
+			tempObj.transform.rotation = dropLocation.rotation;
+		}
+
+	}
